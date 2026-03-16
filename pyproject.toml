@@ -1,7 +1,7 @@
 [project]
-name = "my_package"
+name = "grismagic"
 authors = [{name = "Example Author", email = "author@mpia.de"}]
-description = "An example package"
+description = "Grism configuration readers and trace/dispersion utilities"
 readme = "README.md"
 license = { file = 'LICENSE' }
 classifiers = [
@@ -13,10 +13,14 @@ requires-python = ">=3.9"
 dependencies = [
     "numpy",
     "asdf",
+    "jax",
 ]
 dynamic = ['version']
 
 [project.optional-dependencies]
+roman = [
+    "pyyaml",
+]
 docs = [
     "sphinx",
     "sphinx-automodapi",
@@ -32,8 +36,8 @@ test = [
 ]
 
 [project.urls]
-"Bug Tracker" = "https://github.com/mpi-astronomy/snowblind/issues"
-"Source Code" = "https://github.com/mpi-astronomy/snowblind"
+"Bug Tracker" = "https://github.com/mpi-astronomy/grismagic/issues"
+"Source Code" = "https://github.com/mpi-astronomy/grismagic"
 
 
 [build-system]
@@ -45,7 +49,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-write_to = "src/my_package/_version.py"
+version_file = "src/grismagic/_version.py"
 
 [tool.setuptools.packages.find]
 where = ["src"]
