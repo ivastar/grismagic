@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
       - name: Checkout
@@ -21,10 +21,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Cache test data
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/grismagic
+          key: grismagic-test-data-v1
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ".[test]"
+          pip install ".[test,roman]"
 
       - name: Lint with flake8
         run: |
