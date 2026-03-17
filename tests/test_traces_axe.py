@@ -4,6 +4,8 @@ Tests both a row grism (GR150R) and a column grism (GR150C).
 """
 
 import os
+import tarfile
+import urllib.request
 
 import numpy as np
 import pytest
@@ -13,30 +15,44 @@ from grismagic.traces import GrismTrace
 
 REF_X, REF_Y = 1024.0, 1024.0
 
+_TARBALL_URL = "https://zenodo.org/api/records/7628094/files/niriss_config_221215.tar.gz/content"
+_CACHE_DIR = os.path.expanduser("~/.cache/grismagic/niriss_config_221215")
 _AXE_FILES = [
     "GR150R.F200W.221215.conf",
     "GR150C.F200W.221215.conf",
 ]
 
-_CONF_SEARCH_DIRS = [
-    os.path.join(os.environ.get("GRIZLI", ""), "CONF"),
-    os.path.expanduser("~/dev/grizli_conf/CONF"),
-]
 
-
-def _find_conf(name):
-    for d in _CONF_SEARCH_DIRS:
-        p = os.path.join(d, name)
-        if os.path.exists(p):
-            return p
-    return None
+def _ensure_cache():
+    """Download and extract the config tarball into the cache dir if needed."""
+    if os.path.isdir(_CACHE_DIR):
+        return
+    os.makedirs(_CACHE_DIR, exist_ok=True)
+    tarball = _CACHE_DIR + ".tar.gz"
+    try:
+        urllib.request.urlretrieve(_TARBALL_URL, tarball)
+        with tarfile.open(tarball) as tf:
+            tf.extractall(_CACHE_DIR)
+    except Exception as exc:
+        import shutil
+        shutil.rmtree(_CACHE_DIR, ignore_errors=True)
+        if os.path.exists(tarball):
+            os.remove(tarball)
+        raise exc
+    finally:
+        if os.path.exists(tarball):
+            os.remove(tarball)
 
 
 @pytest.fixture(scope="module", params=_AXE_FILES, ids=lambda f: f.split(".")[0])
 def conf_file(request):
-    path = _find_conf(request.param)
-    if path is None:
-        pytest.skip(f"Config file not found: {request.param}")
+    try:
+        _ensure_cache()
+    except Exception as exc:
+        pytest.skip(f"Could not fetch config tarball: {exc}")
+    path = os.path.join(_CACHE_DIR, request.param)
+    if not os.path.exists(path):
+        pytest.skip(f"Config file not found after extraction: {request.param}")
     return path
 
 

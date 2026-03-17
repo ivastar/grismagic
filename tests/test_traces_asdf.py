@@ -33,32 +33,41 @@ def _eval_dm_model(model, x0, y0, t):
 
 
 import os
+import urllib.request
 
-_ASDF_FILES = [
-    "jwst_niriss_specwcs_0073.GR150R.F150W.asdf",
-    "jwst_niriss_specwcs_0078.GR150C.F150W.asdf",
-]
+_ASDF_URLS = {
+    "jwst_niriss_specwcs_0073.asdf": "https://jwst-crds.stsci.edu/unchecked_get/references/jwst/jwst_niriss_specwcs_0073.asdf",
+    "jwst_niriss_specwcs_0078.asdf": "https://jwst-crds.stsci.edu/unchecked_get/references/jwst/jwst_niriss_specwcs_0078.asdf",
+}
 
-_CONF_SEARCH_DIRS = [
-    os.path.join(os.environ.get("GRIZLI", ""), "CONF"),
-    os.path.expanduser("~/dev/grizli_conf/CONF"),
-]
+_CACHE_DIR = os.path.expanduser("~/.cache/grismagic/crds")
 
 
-def _find_asdf(name):
-    for d in _CONF_SEARCH_DIRS:
-        p = os.path.join(d, name)
-        if os.path.exists(p):
-            return p
-    return None
+def _fetch_asdf(name):
+    """Return a local path to the file, downloading it to the cache if needed."""
+    os.makedirs(_CACHE_DIR, exist_ok=True)
+    dest = os.path.join(_CACHE_DIR, name)
+    if not os.path.exists(dest):
+        url = _ASDF_URLS[name]
+        try:
+            urllib.request.urlretrieve(url, dest)
+        except Exception as exc:
+            if os.path.exists(dest):
+                os.remove(dest)
+            raise exc
+    return dest
 
 
-@pytest.fixture(scope="module", params=_ASDF_FILES, ids=lambda f: f.split("_")[3])
+@pytest.fixture(
+    scope="module",
+    params=list(_ASDF_URLS.keys()),
+    ids=lambda f: f.split("_")[3].split(".")[0],  # "0073" / "0078"
+)
 def conf_file(request):
-    path = _find_asdf(request.param)
-    if path is None:
-        pytest.skip(f"Config file not found: {request.param}")
-    return path
+    try:
+        return _fetch_asdf(request.param)
+    except Exception as exc:
+        pytest.skip(f"Could not fetch {request.param}: {exc}")
 
 
 @pytest.fixture(scope="module")

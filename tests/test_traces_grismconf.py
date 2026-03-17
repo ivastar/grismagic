@@ -4,8 +4,7 @@ Compares output against the reference `grismconf` package by Pirzkal.
 """
 
 import os
-import shutil
-import glob
+import subprocess
 
 import numpy as np
 import pytest
@@ -16,46 +15,24 @@ from grismagic.traces import GrismTrace
 REF_X, REF_Y = 1024.0, 1024.0
 T_GRID = np.linspace(0, 1, 50)
 
-_CONF_NAME = "NIRISS_F200W_GR150C.V5.conf"
-_SENS_GLOB = "NIRISS_NIS_GR150C_F200W_*_sens_*.fits"
-
-# Candidate directories to find the conf file (tried in order)
-_CONF_SEARCH_DIRS = [
-    os.path.join(os.environ.get("GRIZLI", ""), "CONF"),
-    os.path.expanduser("~/dev/NGDEEP_NIRISS_CALIB"),
-]
-# Directory that holds the sensitivity FITS files
-_SENS_DIR = os.path.expanduser("~/dev/NGDEEP_NIRISS_CALIB")
+_REPO_URL = "https://github.com/npirzkal/NGDEEP_NIRISS_CALIB"
+_CALIB_DIR = os.path.expanduser("~/.cache/grismagic/NGDEEP_NIRISS_CALIB")
+_CONF_FILE = os.path.join(_CALIB_DIR, "NIRISS_F200W_GR150C.V5.conf")
 
 
 @pytest.fixture(scope="module")
-def conf_file(tmp_path_factory):
-    """
-    Return a path to the GRISMCONF .conf file inside a temp directory that
-    also contains all required sensitivity FITS files so that
-    ``grismconf.Config`` can load them without error.
-    """
-    # Find the conf file
-    src_conf = None
-    for d in _CONF_SEARCH_DIRS:
-        candidate = os.path.join(d, _CONF_NAME)
-        if os.path.exists(candidate):
-            src_conf = candidate
-            break
-    if src_conf is None:
-        pytest.skip(f"Config file {_CONF_NAME!r} not found in any of {_CONF_SEARCH_DIRS}")
-
-    # Build a temp dir with conf + sensitivity files co-located
-    tmp_dir = str(tmp_path_factory.mktemp("grismconf"))
-    shutil.copy2(src_conf, os.path.join(tmp_dir, _CONF_NAME))
-
-    sens_files = glob.glob(os.path.join(_SENS_DIR, _SENS_GLOB))
-    if not sens_files:
-        pytest.skip(f"No sensitivity files matching {_SENS_GLOB!r} found in {_SENS_DIR}")
-    for sf in sens_files:
-        shutil.copy2(sf, os.path.join(tmp_dir, os.path.basename(sf)))
-
-    return os.path.join(tmp_dir, _CONF_NAME)
+def conf_file():
+    if not os.path.exists(_CALIB_DIR):
+        try:
+            subprocess.run(
+                ["git", "clone", "--depth=1", _REPO_URL, _CALIB_DIR],
+                check=True, capture_output=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            pytest.skip(f"Could not clone {_REPO_URL}: {exc.stderr.decode()}")
+    if not os.path.exists(_CONF_FILE):
+        pytest.skip(f"Config file not found after clone: {_CONF_FILE}")
+    return _CONF_FILE
 
 
 @pytest.fixture(scope="module")
