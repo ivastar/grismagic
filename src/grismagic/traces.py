@@ -167,8 +167,12 @@ class GrismTrace:
             raise ValueError("x and y are required for GRISMCONF / CRDS / Roman")
         if self._kind in ("grismconf", "crds"):
             t = np.linspace(0, 1, nt)
-            dx = self.reader.DISPX(order, x, y, t)
-            return float(dx.min()), float(dx.max())
+            r = self.reader
+            if self._primary_axis(order, x, y) == 'y':
+                vals = r.DISPY(order, x, y, t)
+            else:
+                vals = r.DISPX(order, x, y, t)
+            return float(vals.min()), float(vals.max())
         # Roman
         r = self.reader
         wl_grid = np.linspace(r.wl_min, r.wl_max, nt)
@@ -309,12 +313,27 @@ class GrismTrace:
         dy, lam = self.reader.get_beam_trace(x, y, dx, beam=beam)
         return x + dx, y + dy, lam
 
+    def _primary_axis(self, order, x, y, nt=64):
+        """Return 'x' (row grism) or 'y' (column grism) based on which DISP has larger range."""
+        t = np.linspace(0, 1, nt)
+        r = self.reader
+        if np.ptp(r.DISPY(order, x, y, t)) > np.ptp(r.DISPX(order, x, y, t)):
+            return 'y'
+        return 'x'
+
     def _trace_grismconf(self, x, y, order, dx):
         r = self.reader
-        t = r.INVDISPX(order, x, y, dx)
-        y_trace = y + r.DISPY(order, x, y, t)
+        if self._primary_axis(order, x, y) == 'y':
+            # Column grism: the input 'dx' is really a dy offset
+            t = r.INVDISPY(order, x, y, dx)
+            x_trace = x + r.DISPX(order, x, y, t)
+            y_trace = y + dx
+        else:
+            t = r.INVDISPX(order, x, y, dx)
+            x_trace = x + dx
+            y_trace = y + r.DISPY(order, x, y, t)
         lam = r.DISPL(order, x, y, t)
-        return x + dx, y_trace, lam
+        return x_trace, y_trace, lam
 
     def _axe_at_wavelength(self, x, y, beam, lam, n_interp):
         lo, hi = self.dx_range(beam)
