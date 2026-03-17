@@ -169,7 +169,8 @@ class aXeConfReader:
         self.beams = []
         self.beam_range = {}
         for beam in "ABCDEFGHIJ":
-            key = f"BEAM{beam}"
+            # Accept both BEAMA and BEAM_A conventions
+            key = f"BEAM{beam}" if f"BEAM{beam}" in self._conf else f"BEAM_{beam}"
             if key in self._conf:
                 self.beams.append(beam)
                 self.beam_range[beam] = self._conf[key]
@@ -232,9 +233,15 @@ class aXeConfReader:
 
         dy = yoff_beam + sum(dydx[i] * (dx - xoff_beam) ** i for i in range(norder))
 
-        ndldp = int(self._conf.get(f"DISP_ORDER_{beam}", 1)) + 1
-        dldp = [_axe_field_dependent(xi, yi, self._conf.get(f"DLDP_{beam}_{i}", 0.0))
-                for i in range(ndldp)]
+        # Accept both DISP_ORDER / DLDP (old) and DISPL_ORDER / DISPL (new) conventions
+        if f"DISPL_ORDER_{beam}" in self._conf:
+            ndldp = int(self._conf[f"DISPL_ORDER_{beam}"]) + 1
+            dldp = [_axe_field_dependent(xi, yi, self._conf.get(f"DISPL_{beam}_{i}", 0.0))
+                    for i in range(ndldp)]
+        else:
+            ndldp = int(self._conf.get(f"DISP_ORDER_{beam}", 1)) + 1
+            dldp = [_axe_field_dependent(xi, yi, self._conf.get(f"DLDP_{beam}_{i}", 0.0))
+                    for i in range(ndldp)]
 
         dp = _axe_arc_length(dx - xoff_beam, dydx)
         lam = sum(dldp[i] * dp ** i for i in range(ndldp))
