@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'my_package'
+project = 'grismagic'
 copyright = '2022, Author Name'
 author = 'Author Name'
 
