@@ -141,11 +141,12 @@ def test_polynomial_matches_grismconf(grism_trace, grismconf_ref, quantity):
 
 def test_get_trace_matches_grismconf(grism_trace, grismconf_ref):
     """
-    get_trace output should match the grismconf package to within INVDISPX
+    get_trace output should match the grismconf package to within INVDISP
     interpolation error.
 
-    Strategy: evaluate reference DISPX over T_GRID to get dx values, then
-    pass those to get_trace and compare y and lam against reference DISPY/DISPL.
+    Drive the trace along its primary dispersion axis (y for GR150C column grisms,
+    x for row grisms).  The driven axis is exact by construction; the other axis
+    and wavelength are checked to sub-pixel / sub-percent tolerance.
     """
     order = grism_trace.orders[0]
 
@@ -153,10 +154,15 @@ def test_get_trace_matches_grismconf(grism_trace, grismconf_ref):
     ref_dy  = np.array([grismconf_ref.DISPY(order, REF_X, REF_Y, t) for t in T_GRID])
     ref_lam = np.array([grismconf_ref.DISPL(order, REF_X, REF_Y, t) for t in T_GRID])
 
-    x_tr, y_tr, lam = grism_trace.get_trace(REF_X, REF_Y, order, ref_dx)
+    axis = grism_trace._primary_axis(order, REF_X, REF_Y)
+    ref_offset = ref_dy if axis == 'y' else ref_dx
 
-    # x is exact by construction
-    np.testing.assert_allclose(x_tr, REF_X + ref_dx, rtol=1e-10)
-    # y and lam go through INVDISPX interpolation — allow sub-pixel tolerance
-    np.testing.assert_allclose(y_tr, REF_Y + ref_dy,  atol=0.01)
-    np.testing.assert_allclose(lam,  ref_lam,          rtol=1e-4)
+    x_tr, y_tr, lam = grism_trace.get_trace(REF_X, REF_Y, order, ref_offset)
+
+    if axis == 'y':
+        np.testing.assert_allclose(y_tr, REF_Y + ref_dy, rtol=1e-10)
+        np.testing.assert_allclose(x_tr, REF_X + ref_dx,  atol=0.01)
+    else:
+        np.testing.assert_allclose(x_tr, REF_X + ref_dx, rtol=1e-10)
+        np.testing.assert_allclose(y_tr, REF_Y + ref_dy,  atol=0.01)
+    np.testing.assert_allclose(lam, ref_lam, rtol=1e-4)
