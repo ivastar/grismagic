@@ -1,4 +1,5 @@
 from . import _version
+from . import wavelengthrange
 
 
 try:

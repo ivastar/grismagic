@@ -13,6 +13,7 @@ Explictly not ported from grizli/grismconf.py:
 
 import numpy as np
 from .readers import aXeConfReader, GRISMCONFReader, CRDSReader, RomanConfReader
+from .wavelengthrange import get_wavelength_range
 
 
 class GrismTrace:
@@ -27,6 +28,23 @@ class GrismTrace:
     ----------
     reader : aXeConfReader | GRISMCONFReader | CRDSReader | RomanConfReader
         An already-initialised reader instance.
+    filter_name : str, optional
+        Filter name (e.g. ``'F200W'``).  When set, ``get_trace`` and
+        ``dx_range`` automatically look up ``lam_min`` / ``lam_max`` from the
+        CRDS wavelengthrange reference file so you do not have to pass them
+        explicitly.  Explicit ``lam_min`` / ``lam_max`` arguments always take
+        precedence.
+    wavelengthrange_file : str or path-like, optional
+        Path to a local wavelengthrange ASDF file.  Overrides the default
+        CRDS cache (see :mod:`grismagic.wavelengthrange`).
+    check_update : bool
+        If ``True``, query CRDS on every use to see whether the operational
+        context has changed and re-download the wavelengthrange reference if
+        needed.  Default ``False`` (use the cached file without a network
+        call).
+    instrument : str
+        JWST instrument name used when resolving the wavelengthrange
+        reference.  Default ``'niriss'``.
 
     Examples
     --------
@@ -37,9 +55,13 @@ class GrismTrace:
     >>> tr = GrismTrace.from_grismconf("NIRCAM_F444W_modA_R.conf")
     >>> x_tr, y_tr, lam = tr.get_trace(1024, 1024, order="+1", dx=dx)
 
+    >>> tr = GrismTrace.from_crds("specwcs.asdf", filter_name="F200W")
+    >>> x_tr, y_tr, lam = tr.get_trace(1024, 1024, order="+1", dx=dx)
+    # lam_min / lam_max applied automatically from the CRDS wavelengthrange ref
+
     GrismTrace.from_axe("file.conf")
     GrismTrace.from_grismconf("file.conf")
-    GrismTrace.from_crds("file.asdf")
+    GrismTrace.from_crds("file.asdf", filter_name="F200W")
     GrismTrace.from_roman("file.yaml")
     GrismTrace.from_file("file.*")          # auto-detects by extension/content
 
@@ -47,7 +69,8 @@ class GrismTrace:
 
     """
 
-    def __init__(self, reader):
+    def __init__(self, reader, filter_name=None, wavelengthrange_file=None,
+                 check_update=False, instrument="niriss"):
         if isinstance(reader, aXeConfReader):
             self._kind = "axe"
         elif isinstance(reader, GRISMCONFReader):
@@ -59,33 +82,50 @@ class GrismTrace:
         else:
             raise TypeError(f"Unsupported reader type: {type(reader).__name__}")
         self.reader = reader
+        self.filter_name = filter_name
+        self._wavelengthrange_file = wavelengthrange_file
+        self._check_update = check_update
+        self._instrument = instrument
 
     # ------------------------------------------------------------------
     # Constructors
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_axe(cls, conf_file):
+    def from_axe(cls, conf_file, filter_name=None, wavelengthrange_file=None,
+                 check_update=False, instrument="niriss"):
         """Create from an aXe text .conf file."""
-        return cls(aXeConfReader(conf_file))
+        return cls(aXeConfReader(conf_file), filter_name=filter_name,
+                   wavelengthrange_file=wavelengthrange_file,
+                   check_update=check_update, instrument=instrument)
 
     @classmethod
-    def from_grismconf(cls, conf_file):
+    def from_grismconf(cls, conf_file, filter_name=None, wavelengthrange_file=None,
+                       check_update=False, instrument="niriss"):
         """Create from a GRISMCONF text .conf file."""
-        return cls(GRISMCONFReader(conf_file))
+        return cls(GRISMCONFReader(conf_file), filter_name=filter_name,
+                   wavelengthrange_file=wavelengthrange_file,
+                   check_update=check_update, instrument=instrument)
 
     @classmethod
-    def from_crds(cls, asdf_file):
+    def from_crds(cls, asdf_file, filter_name=None, wavelengthrange_file=None,
+                  check_update=False, instrument="niriss"):
         """Create from a JWST CRDS specwcs .asdf file."""
-        return cls(CRDSReader(asdf_file))
+        return cls(CRDSReader(asdf_file), filter_name=filter_name,
+                   wavelengthrange_file=wavelengthrange_file,
+                   check_update=check_update, instrument=instrument)
 
     @classmethod
-    def from_roman(cls, yaml_file):
+    def from_roman(cls, yaml_file, filter_name=None, wavelengthrange_file=None,
+                   check_update=False, instrument="niriss"):
         """Create from a Roman WFI grism YAML file."""
-        return cls(RomanConfReader(yaml_file))
+        return cls(RomanConfReader(yaml_file), filter_name=filter_name,
+                   wavelengthrange_file=wavelengthrange_file,
+                   check_update=check_update, instrument=instrument)
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path, filter_name=None, wavelengthrange_file=None,
+                  check_update=False, instrument="niriss"):
         """
         Auto-detect reader type from file extension and content.
 
@@ -94,16 +134,18 @@ class GrismTrace:
         * ``.conf`` with ``DISPX_`` keywords → GRISMCONF
         * ``.conf`` otherwise  → aXe
         """
+        kw = dict(filter_name=filter_name, wavelengthrange_file=wavelengthrange_file,
+                  check_update=check_update, instrument=instrument)
         path_lower = str(path).lower()
         if path_lower.endswith(".asdf"):
-            return cls.from_crds(path)
+            return cls.from_crds(path, **kw)
         if path_lower.endswith((".yaml", ".yml")):
-            return cls.from_roman(path)
+            return cls.from_roman(path, **kw)
         with open(path) as fh:
             content = fh.read()
         if any(k in content for k in ("DISPX_", "DISPY_", "DISPL_")):
-            return cls.from_grismconf(path)
-        return cls.from_axe(path)
+            return cls.from_grismconf(path, **kw)
+        return cls.from_axe(path, **kw)
 
     # ------------------------------------------------------------------
     # Public API
@@ -122,6 +164,14 @@ class GrismTrace:
             return self.reader.beams
         return self.reader.orders
 
+    @property
+    def fwcpos_ref(self):
+        """
+        Reference filter wheel position angle (degrees) for NIRISS grisms,
+        or ``None`` if the format does not carry this keyword.
+        """
+        return getattr(self.reader, "fwcpos_ref", None)
+
     def remove_beam(self, order):
         """
         Remove a spectral order from ``self.orders``.
@@ -135,15 +185,35 @@ class GrismTrace:
         if order in lst:
             lst.remove(order)
 
-    def dx_range(self, order, x=None, y=None, nt=512):
+    def _lam_range(self, order, lam_min, lam_max):
         """
-        Pixel extent of the trace along x for a given order.
+        Return ``(lam_min, lam_max)``, filling in from the wavelengthrange
+        reference when ``self.filter_name`` is set and neither limit was
+        supplied explicitly.
+        """
+        if (lam_min is None and lam_max is None) and self.filter_name is not None:
+            try:
+                lam_min, lam_max = get_wavelength_range(
+                    self.filter_name,
+                    order=order,
+                    instrument=self._instrument,
+                    wavelengthrange_file=self._wavelengthrange_file,
+                    check_update=self._check_update,
+                )
+            except Exception:
+                pass  # fall back to no range restriction
+        return lam_min, lam_max
+
+    def dx_range(self, order, x=None, y=None, nt=512, lam_min=None, lam_max=None):
+        """
+        Pixel extent of the trace along its primary dispersion axis.
 
         For aXe the range comes directly from the ``BEAM{order}`` entry and is
         position-independent; ``x`` and ``y`` are ignored.  For GRISMCONF /
-        CRDS the t parameter is swept from 0 to 1 at ``(x, y)``.  For Roman
-        the full wavelength grid is evaluated at ``(x, y)``.  ``x`` and ``y``
-        must be supplied for non-aXe formats.
+        CRDS the t parameter is swept at ``(x, y)``; if ``lam_min`` /
+        ``lam_max`` are given, the sweep is restricted to the corresponding t
+        range via INVDISPL.  For Roman the full wavelength grid is used.
+        ``x`` and ``y`` must be supplied for non-aXe formats.
 
         Parameters
         ----------
@@ -154,21 +224,28 @@ class GrismTrace:
             Required for non-aXe formats.
         nt : int
             Number of points in the parameter sweep.
+        lam_min, lam_max : float, optional
+            Wavelength limits (same units as DISPL) used to restrict the t
+            sweep to the physical filter bandpass.  If ``None`` and
+            ``self.filter_name`` is set, the limits are looked up automatically
+            from the wavelengthrange reference.
 
         Returns
         -------
-        dx_min, dx_max : float
-            Minimum and maximum x pixel offset from the source.
+        lo, hi : float
+            Minimum and maximum offset from the source along the primary
+            dispersion axis (dx for row grisms, dy for column grisms).
         """
+        lam_min, lam_max = self._lam_range(order, lam_min, lam_max)
         if self._kind == "axe":
             lo, hi = self.reader.beam_range[order]
             return float(lo), float(hi)
         if x is None or y is None:
             raise ValueError("x and y are required for GRISMCONF / CRDS / Roman")
         if self._kind in ("grismconf", "crds"):
-            t = np.linspace(0, 1, nt)
+            t = self._t_grid(order, x, y, nt, lam_min, lam_max)
             r = self.reader
-            if self._primary_axis(order, x, y) == 'y':
+            if self._primary_axis(order, x, y, lam_min, lam_max) == 'y':
                 vals = r.DISPY(order, x, y, t)
             else:
                 vals = r.DISPX(order, x, y, t)
@@ -272,7 +349,7 @@ class GrismTrace:
         results = [self.get_trace_at_wavelength(x, y, order, lam, n_interp) for x, y in zip(xs, ys)]
         return tuple(np.array([r[i] for r in results]) for i in range(2))
 
-    def get_trace(self, x, y, order, dx, n_lam_roman=512):
+    def get_trace(self, x, y, order, dx, lam_min=None, lam_max=None, n_lam_roman=512):
         """
         Compute the grism trace for a source at detector position ``(x, y)``.
 
@@ -284,7 +361,14 @@ class GrismTrace:
         order : str
             Spectral order identifier as listed in ``self.orders``.
         dx : array-like
-            Pixel offsets from the source along the x-axis.
+            Pixel offsets from the source along the primary dispersion axis
+            (x for row grisms, y for column grisms).
+        lam_min, lam_max : float, optional
+            Wavelength limits (same units as DISPL) used to restrict the t
+            inversion to the physical filter bandpass.  Strongly recommended
+            for CRDS / GRISMCONF to avoid unphysical polynomial extrapolation.
+            If ``None`` and ``self.filter_name`` is set, the limits are looked
+            up automatically from the wavelengthrange reference.
         n_lam_roman : int
             Wavelength grid size used when inverting the Roman dispersion model.
 
@@ -298,11 +382,12 @@ class GrismTrace:
             Wavelength along the trace.  Units: Angstrom for aXe and
             GRISMCONF; micron for CRDS and Roman.
         """
+        lam_min, lam_max = self._lam_range(order, lam_min, lam_max)
         dx = np.asarray(dx, dtype=float)
         if self._kind == "axe":
             return self._trace_axe(x, y, order, dx)
         if self._kind in ("grismconf", "crds"):
-            return self._trace_grismconf(x, y, order, dx)
+            return self._trace_grismconf(x, y, order, dx, lam_min, lam_max)
         return self._trace_roman(x, y, order, dx, n_lam=n_lam_roman)
 
     # ------------------------------------------------------------------
@@ -313,26 +398,47 @@ class GrismTrace:
         dy, lam = self.reader.get_beam_trace(x, y, dx, beam=beam)
         return x + dx, y + dy, lam
 
-    def _primary_axis(self, order, x, y, nt=64):
+    def _t_grid(self, order, x, y, nt, lam_min, lam_max):
+        """Return a t grid restricted to [lam_min, lam_max] via INVDISPL, or [0, 1] if unset."""
+        if lam_min is not None and lam_max is not None:
+            r = self.reader
+            t0 = float(r.INVDISPL(order, x, y, lam_min))
+            t1 = float(r.INVDISPL(order, x, y, lam_max))
+            return np.linspace(min(t0, t1), max(t0, t1), nt)
+        return np.linspace(0, 1, nt)
+
+    def _primary_axis(self, order, x, y, lam_min=None, lam_max=None, nt=64):
         """Return 'x' (row grism) or 'y' (column grism) based on which DISP has larger range."""
-        t = np.linspace(0, 1, nt)
+        t = self._t_grid(order, x, y, nt, lam_min, lam_max)
         r = self.reader
         if np.ptp(r.DISPY(order, x, y, t)) > np.ptp(r.DISPX(order, x, y, t)):
             return 'y'
         return 'x'
 
-    def _trace_grismconf(self, x, y, order, dx):
+    def _trace_grismconf(self, x, y, order, dx, lam_min=None, lam_max=None, nt=512):
         r = self.reader
-        if self._primary_axis(order, x, y) == 'y':
+        # Always invert over the full physical t range so that any dx input
+        # is properly handled; wavelength limits mask the output, not the inversion.
+        t0 = np.linspace(0, 1, nt)
+        if self._primary_axis(order, x, y, lam_min, lam_max) == 'y':
             # Column grism: the input 'dx' is really a dy offset
-            t = r.INVDISPY(order, x, y, dx)
+            t = r.INVDISPY(order, x, y, dx, t0=t0)
             x_trace = x + r.DISPX(order, x, y, t)
             y_trace = y + dx
         else:
-            t = r.INVDISPX(order, x, y, dx)
+            t = r.INVDISPX(order, x, y, dx, t0=t0)
             x_trace = x + dx
             y_trace = y + r.DISPY(order, x, y, t)
         lam = r.DISPL(order, x, y, t)
+        if lam_min is not None or lam_max is not None:
+            outside = np.zeros(len(lam), dtype=bool)
+            if lam_min is not None:
+                outside |= lam < lam_min
+            if lam_max is not None:
+                outside |= lam > lam_max
+            x_trace = np.where(outside, np.nan, x_trace)
+            y_trace = np.where(outside, np.nan, y_trace)
+            lam = np.where(outside, np.nan, lam)
         return x_trace, y_trace, lam
 
     def _axe_at_wavelength(self, x, y, beam, lam, n_interp):

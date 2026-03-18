@@ -48,7 +48,7 @@ def _eval_poly(coeffs, x, y, t):
     return sum(t ** i * np.dot(coeffs[i], xy) for i in range(n_t))
 
 
-def _inv_poly(coeffs, x, y, val, t0=np.linspace(-1, 2, 128)):
+def _inv_poly(coeffs, x, y, val, t0=np.linspace(0, 1, 128)):
     """
     Invert a dispersion polynomial via interpolation.
     For linear-in-t polynomials (n_t == 2), uses the closed-form solution.
@@ -165,6 +165,7 @@ class aXeConfReader:
 
         self.xoff = float(self._conf.get("XOFF", 0.0))
         self.yoff = float(self._conf.get("YOFF", 0.0))
+        self.fwcpos_ref = float(self._conf["FWCPOS_REF"]) if "FWCPOS_REF" in self._conf else None
 
         self.beams = []
         self.beam_range = {}
@@ -274,6 +275,7 @@ class GRISMCONFReader:
         with open(conf_file) as f:
             self._lines = f.readlines()
 
+        self.fwcpos_ref = self._read_scalar("FWCPOS_REF")
         self.orders = self._read_orders()
 
         self._dispx = {o: self._read_poly("DISPX", o) for o in self.orders}
@@ -283,6 +285,17 @@ class GRISMCONFReader:
         self._invdispx = {o: self._read_poly("INVDISPX", o) for o in self.orders}
         self._invdispy = {o: self._read_poly("INVDISPY", o) for o in self.orders}
         self._invdispl = {o: self._read_poly("INVDISPL", o) for o in self.orders}
+
+    def _read_scalar(self, key):
+        """Return the float value of a bare ``key value`` line, or None if absent."""
+        for line in self._lines:
+            parts = line.split("#")[0].split()
+            if parts and parts[0] == key and len(parts) >= 2:
+                try:
+                    return float(parts[1])
+                except ValueError:
+                    return None
+        return None
 
     def _read_orders(self):
         orders = []
@@ -371,6 +384,9 @@ class CRDSReader:
             self._dispx = copy.deepcopy(list(tree["dispx"]))
             self._dispy = copy.deepcopy(list(tree["dispy"]))
             self._displ = copy.deepcopy(list(tree["displ"]))
+            self._invdispl = copy.deepcopy(list(tree["invdispl"]))
+            fwcpos = tree.get("fwcpos_ref")
+            self.fwcpos_ref = float(fwcpos) if fwcpos is not None else None
 
     @staticmethod
     def _resolve_path(file):
@@ -400,7 +416,7 @@ class CRDSReader:
         coeffs = [m(t) if m.n_inputs == 1 else m(x0, y0) for m in model]
         return np.polynomial.Polynomial(coeffs)(t)
 
-    def _inv_eval(self, model, x0, y0, val, t0=np.linspace(-1, 2, 128)):
+    def _inv_eval(self, model, x0, y0, val, t0=np.linspace(0, 1, 128)):
         forward = self._eval(model, x0, y0, t0)
         so = np.argsort(forward)
         return np.interp(val, forward[so], t0[so])
@@ -420,8 +436,8 @@ class CRDSReader:
     def INVDISPY(self, order, x0, y0, dy, t0=np.linspace(-1, 2, 128)):
         return self._inv_eval(self._dispy[self._oi(order)], x0, y0, dy, t0)
 
-    def INVDISPL(self, order, x0, y0, lam, t0=np.linspace(-1, 2, 128)):
-        return self._inv_eval(self._displ[self._oi(order)], x0, y0, lam, t0)
+    def INVDISPL(self, order, x0, y0, lam):
+        return self._eval(self._invdispl[self._oi(order)], x0, y0, lam)
 
 
 # ---------------------------------------------------------------------------
