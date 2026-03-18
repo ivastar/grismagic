@@ -35,6 +35,8 @@ _CRDS_DOWNLOAD_URL = (
     "https://jwst-crds.stsci.edu/unchecked_get/references/jwst/{instr}/{filename}"
 )
 
+_TABLE_CACHE: dict = {}   # {resolved_path: {(filter, order): (lmin, lmax)}}
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -69,7 +71,9 @@ def load_all_ranges(instrument="niriss", wavelengthrange_file=None,
         ``{(filter_str, order_str): (lam_min, lam_max)}``
     """
     path = _resolve(instrument, wavelengthrange_file, check_update)
-    return _read_all_ranges(path)
+    if path not in _TABLE_CACHE:
+        _TABLE_CACHE[path] = _read_all_ranges(path)
+    return _TABLE_CACHE[path]
 
 
 def get_wavelength_range(filter_name, order=None, instrument="niriss",
