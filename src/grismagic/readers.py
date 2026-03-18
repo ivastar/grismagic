@@ -384,7 +384,8 @@ class CRDSReader:
             self._dispx = copy.deepcopy(list(tree["dispx"]))
             self._dispy = copy.deepcopy(list(tree["dispy"]))
             self._displ = copy.deepcopy(list(tree["displ"]))
-            self._invdispl = copy.deepcopy(list(tree["invdispl"]))
+            raw_invdispl = tree.get("invdispl")
+            self._invdispl = copy.deepcopy(list(raw_invdispl)) if raw_invdispl else None
             fwcpos = tree.get("fwcpos_ref")
             self.fwcpos_ref = float(fwcpos) if fwcpos is not None else None
 
@@ -436,8 +437,10 @@ class CRDSReader:
     def INVDISPY(self, order, x0, y0, dy, t0=np.linspace(-1, 2, 128)):
         return self._inv_eval(self._dispy[self._oi(order)], x0, y0, dy, t0)
 
-    def INVDISPL(self, order, x0, y0, lam):
-        return self._eval(self._invdispl[self._oi(order)], x0, y0, lam)
+    def INVDISPL(self, order, x0, y0, lam, t0=np.linspace(0, 1, 128)):
+        if self._invdispl is not None:
+            return self._eval(self._invdispl[self._oi(order)], x0, y0, lam)
+        return self._inv_eval(self._displ[self._oi(order)], x0, y0, lam, t0)
 
 
 # ---------------------------------------------------------------------------
