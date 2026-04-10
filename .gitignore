@@ -146,7 +146,8 @@ dmypy.json
 
 # images
 
-Ex/RateFiles/
+Ex/RateFiles/1090
+Ex/RateFiles/MAST_2026-04-01T1016
 
 #sensitivity files
 Ex/SenseConfig

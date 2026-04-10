@@ -134,7 +134,7 @@ def nan_local_mean(arr, size=5, mode='reflect'):
 #A.build_and_save_trace_matrix_sensitivities_all_orders()
 base = Path(__file__).resolve().parent
 
-hdu_1 = fits.open(base / "jw01090001001_34101_00001_nis_rate.fits") #F200W, GR150R
+hdu_1 = fits.open(base / "RateFiles" / "Match" / "jw01090001001_34101_00001_nis_rate.fits") #F200W, GR150R
 hdu_1.info()
 
 image_data = hdu_1['SCI'].data
@@ -214,7 +214,7 @@ np.save("recovered_uniform_1order_500_500_jw01090001001_34101_00001_nis_rate.npy
 #H = build_matrix("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\Config Files\\GR150R.F200W.220725.conf",filter_name="F200W",wavelengthrange_file="C:\\Users\\anika\\GitHub\\grismagic\\Ex\\jwst_niriss_wavelengthrange_0002.asdf")
 #H.build_and_save_trace_matrix_coefficients_orders()
 base = Path(__file__).resolve().parent
-hdu_1 = fits.open(base / "jw01090001001_39101_00002_nis_rate.fits") #F200W, GR150R
+hdu_1 = fits.open(base / "RateFiles" / "Match" / "jw01090001001_39101_00002_nis_rate.fits") #F200W, GR150R
 hdu_1.info()
 print(hdu_1[0].header["PUPIL"])
 
