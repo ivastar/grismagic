@@ -126,23 +126,24 @@ def nan_local_mean(arr, size=5, mode='reflect'):
 
     return result
 
-# ###################################
-# # Original direct tryout
-# ######################################
-# # # just do the two following lines once to build the matrix
-# #A = build_matrix("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\Config Files\\GR150R.F200W.220725.conf",filter_name="F200W",wavelengthrange_file="C:\\Users\\anika\\GitHub\\grismagic\\Ex\\jwst_niriss_wavelengthrange_0002.asdf")
-# #A.build_and_save_trace_matrix_sensitivities_all_orders()
+###################################
+# Original direct tryout
+######################################
+# # just do the two following lines once to build the matrix
+#A = build_matrix("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\Config Files\\GR150R.F200W.220725.conf",filter_name="F200W",wavelengthrange_file="C:\\Users\\anika\\GitHub\\grismagic\\Ex\\jwst_niriss_wavelengthrange_0002.asdf")
+#A.build_and_save_trace_matrix_sensitivities_all_orders()
+base = Path(__file__).resolve().parent
 
-# hdu_1 = fits.open("RateFiles\\1090\\jw01090001001_34101_00001_nis_rate.fits") #F200W, GR150R
-# hdu_1.info()
+hdu_1 = fits.open(base / "jw01090001001_34101_00001_nis_rate.fits") #F200W, GR150R
+hdu_1.info()
 
-# image_data = hdu_1['SCI'].data
-# hdu_1.close()
+image_data = hdu_1['SCI'].data
+hdu_1.close()
 
-# direct_masked = np.array(nan_local_mean(image_data))
+direct_masked = np.array(nan_local_mean(image_data))
 
-# direct_masked = direct_masked[0:500,0:500]
-# np.save("original_direct_500_500_jw01090001001_34101_00001_nis_rate.npy", direct_masked)
+direct_masked = direct_masked[0:500,0:500]
+#np.save("original_direct_500_500_jw01090001001_34101_00001_nis_rate.npy", direct_masked)
 
 # plt.figure()
 # std1 = np.nanstd(direct_masked)
@@ -152,12 +153,12 @@ def nan_local_mean(arr, size=5, mode='reflect'):
 # #plt.title(fitsfile)
 # plt.show()
 
-# disp = dispersion()
-# start = time.time()
-# dispersed = disp.compute_dispersed_linear_sensitivities(direct_masked)
-# np.save("dispersed_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy", dispersed)
-# end = time.time()
-# print(f"Dispersion Time: {end - start:.2f} seconds")
+disp = dispersion()
+start = time.time()
+dispersed = disp.compute_dispersed_linear(direct_masked)
+np.save("dispersed_uniform_1order_500_500_jw01090001001_34101_00001_nis_rate.npy", dispersed)
+end = time.time()
+print(f"Dispersion Time: {end - start:.2f} seconds")
 
 # plt.figure()
 # std2 = np.nanstd(dispersed)
@@ -167,9 +168,9 @@ def nan_local_mean(arr, size=5, mode='reflect'):
 # #plt.title(fitsfile)
 # plt.show()
 
-# recov = recovery()
-# recovered = recov.recover_direct_from_traces_sensitivities_matrix(dispersed)
-# np.save("recovered_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy",recovered)
+recov = recovery()
+recovered = recov.recover_direct_from_traces_matrix(dispersed)
+np.save("recovered_uniform_1order_500_500_jw01090001001_34101_00001_nis_rate.npy",recovered)
 # plt.figure()
 # std3 = np.nanstd(recovered)
 # mean3 = np.nanmean(recovered)
@@ -206,28 +207,28 @@ def nan_local_mean(arr, size=5, mode='reflect'):
 # plt.show()
 
 
-# ###################################################
-# #Recovery just from dispersed data
-# #################################################
-# # do the following two lines just once to build matrix
-# #H = build_matrix("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\Config Files\\GR150R.F200W.220725.conf",filter_name="F200W",wavelengthrange_file="C:\\Users\\anika\\GitHub\\grismagic\\Ex\\jwst_niriss_wavelengthrange_0002.asdf")
-# #H.build_and_save_trace_matrix_coefficients_orders()
+###################################################
+#Recovery just from dispersed data
+#################################################
+# do the following two lines just once to build matrix
+#H = build_matrix("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\Config Files\\GR150R.F200W.220725.conf",filter_name="F200W",wavelengthrange_file="C:\\Users\\anika\\GitHub\\grismagic\\Ex\\jwst_niriss_wavelengthrange_0002.asdf")
+#H.build_and_save_trace_matrix_coefficients_orders()
+base = Path(__file__).resolve().parent
+hdu_1 = fits.open(base / "jw01090001001_39101_00002_nis_rate.fits") #F200W, GR150R
+hdu_1.info()
+print(hdu_1[0].header["PUPIL"])
 
-# hdu_1 = fits.open("RateFiles\\1090\\jw01090001001_39101_00002_nis_rate.fits") #F200W, GR150R
-# hdu_1.info()
-# print(hdu_1[0].header["PUPIL"])
-
-# image_data_dispersed = hdu_1['SCI'].data
-# hdu_1.close()
+image_data_dispersed = hdu_1['SCI'].data
+hdu_1.close()
 
 
-# dispersed_masked = np.array(nan_local_mean(image_data_dispersed))
+dispersed_masked = np.array(nan_local_mean(image_data_dispersed))
 
-# dispersed_masked = dispersed_masked[0:500,0:500]
-# std1 = np.nanstd(dispersed_masked)
-# mean1 = np.nanmean(dispersed_masked)
-# np.save("original_dispersed_500_500_jw01090001001_39101_00002_nis_rate.npy", dispersed_masked)
-# #dispersed_masked[dispersed_masked<std1]=0
+dispersed_masked = dispersed_masked[0:500,0:500]
+std1 = np.nanstd(dispersed_masked)
+mean1 = np.nanmean(dispersed_masked)
+#np.save("original_dispersed_500_500_jw01090001001_39101_00002_nis_rate.npy", dispersed_masked)
+#dispersed_masked[dispersed_masked<std1]=0
 
 # plt.figure()
 
@@ -236,9 +237,9 @@ def nan_local_mean(arr, size=5, mode='reflect'):
 # #plt.title(fitsfile)
 # plt.show()
 
-# recov = recovery()
-# recovered = recov.recover_direct_from_traces_sensitivities_matrix(dispersed_masked) #now with uniform dist
-# np.save("recovered_uniform_sensitivities_102orders_500_500_jw01090001001_39101_00002_nis_rate.npy", recovered)
+recov = recovery()
+recovered = recov.recover_direct_from_traces_matrix(dispersed_masked) #now with uniform dist
+np.save("recovered_uniform_1order_500_500_jw01090001001_39101_00002_nis_rate.npy", recovered)
 # plt.figure()
 # std2 = np.nanstd(recovered)
 # mean2 = np.nanmean(recovered)
@@ -269,77 +270,77 @@ def nan_local_mean(arr, size=5, mode='reflect'):
 #model spectra comparing real trace to predicted trace
 
 
-#####################################################################
-# loading saved matrices
-################################################################
-base = Path(__file__).resolve().parent
-# based on the original direct image
-original_direct = np.load(base / "original_direct_500_500_jw01090001001_34101_00001_nis_rate.npy")
-dispersed = np.load(base / "dispersed_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy")
-recovered_og_direct =  np.load(base / "recovered_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy")
+# #####################################################################
+# # loading saved matrices
+# ################################################################
+# base = Path(__file__).resolve().parent
+# # based on the original direct image
+# original_direct = np.load(base / "original_direct_500_500_jw01090001001_34101_00001_nis_rate.npy")
+# dispersed = np.load(base / "dispersed_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy")
+# recovered_og_direct =  np.load(base / "recovered_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy")
 
-# based on original dispersed
-original_dispersed = np.load(base / "original_dispersed_500_500_jw01090001001_39101_00002_nis_rate.npy")
-recovered_og_dispersed = np.load(base / "recovered_uniform_sensitivities_102orders_500_500_jw01090001001_39101_00002_nis_rate.npy")
+# # based on original dispersed
+# original_dispersed = np.load(base / "original_dispersed_500_500_jw01090001001_39101_00002_nis_rate.npy")
+# recovered_og_dispersed = np.load(base / "recovered_uniform_sensitivities_102orders_500_500_jw01090001001_39101_00002_nis_rate.npy")
 
-####################################################################
-# plot saved matrices
-##################################################################
-# based on the original direct image
-plt.subplot(1,4,1)
-std1 = np.nanstd(original_direct)
-mean1 = np.nanmean(original_direct)
-plt.imshow(original_direct, cmap="inferno", vmin=0, vmax=mean1 + 2*std1, interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Original Direct")
-
-
-plt.subplot(1,4,2)
-std2 = np.nanstd(dispersed)
-mean2 = np.nanmean(dispersed)
-plt.imshow(dispersed, cmap="inferno", vmin=0, vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Dispersed")
+# ####################################################################
+# # plot saved matrices
+# ##################################################################
+# # based on the original direct image
+# plt.subplot(1,4,1)
+# std1 = np.nanstd(original_direct)
+# mean1 = np.nanmean(original_direct)
+# plt.imshow(original_direct, cmap="inferno", vmin=0, vmax=mean1 + 2*std1, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Original Direct")
 
 
-plt.subplot(1,4,3)
-std3 = np.nanstd(recovered_og_direct)
-mean3 = np.nanmean(recovered_og_direct)
-plt.imshow(recovered_og_direct, cmap="inferno", vmin=0, vmax=mean3 + 2*std3, interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Recovered_from_Dispersed")
+# plt.subplot(1,4,2)
+# std2 = np.nanstd(dispersed)
+# mean2 = np.nanmean(dispersed)
+# plt.imshow(dispersed, cmap="inferno", vmin=0, vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Dispersed")
 
 
-plt.subplot(1,4,4)
-std4 = np.nanstd(original_direct -recovered_og_direct)
-mean4 = np.nanmean(original_direct -recovered_og_direct)
-plt.imshow(original_direct -recovered_og_direct, cmap="inferno", vmin=-(mean4 + 2*std4), vmax=mean4 + 2*std4, interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Residuals: Original_Direct-Recovered_from_Dispersed")
+# plt.subplot(1,4,3)
+# std3 = np.nanstd(recovered_og_direct)
+# mean3 = np.nanmean(recovered_og_direct)
+# plt.imshow(recovered_og_direct, cmap="inferno", vmin=0, vmax=mean3 + 2*std3, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Recovered_from_Dispersed")
 
-plt.show()
 
-# based on original dispersed
+# plt.subplot(1,4,4)
+# std4 = np.nanstd(original_direct -recovered_og_direct)
+# mean4 = np.nanmean(original_direct -recovered_og_direct)
+# plt.imshow(original_direct -recovered_og_direct, cmap="inferno", vmin=-(mean4 + 2*std4), vmax=mean4 + 2*std4, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Residuals: Original_Direct-Recovered_from_Dispersed")
 
-plt.subplot(1,3,1)
-std1 = np.nanstd(original_dispersed)
-mean1 = np.nanmean(original_dispersed)
-plt.imshow(original_dispersed, cmap="inferno", vmin=0, vmax=mean1 + 2*std1, interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Original Dispersed")
+# plt.show()
 
-plt.subplot(1,3,2)
-std2 = np.nanstd(recovered_og_dispersed)
-mean2 = np.nanmean(recovered_og_dispersed)
-plt.imshow(recovered_og_dispersed, cmap="inferno", vmin=0, vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Recovered from original Dispersed")
+# # based on original dispersed
 
-plt.subplot(1,3,3)
-std3 = np.nanstd(original_dispersed -recovered_og_dispersed)
-mean3 = np.nanmean(original_dispersed -recovered_og_dispersed)
-plt.imshow(original_dispersed -recovered_og_dispersed, cmap="inferno", vmin=-(mean3 + 2*std3), vmax=mean3 + 2*std3, interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Residuals: Original Direct - Recovered from original Dispersed")
+# plt.subplot(1,3,1)
+# std1 = np.nanstd(original_dispersed)
+# mean1 = np.nanmean(original_dispersed)
+# plt.imshow(original_dispersed, cmap="inferno", vmin=0, vmax=mean1 + 2*std1, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Original Dispersed")
 
-plt.show()
+# plt.subplot(1,3,2)
+# std2 = np.nanstd(recovered_og_dispersed)
+# mean2 = np.nanmean(recovered_og_dispersed)
+# plt.imshow(recovered_og_dispersed, cmap="inferno", vmin=0, vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Recovered from original Dispersed")
+
+# plt.subplot(1,3,3)
+# std3 = np.nanstd(original_dispersed -recovered_og_dispersed)
+# mean3 = np.nanmean(original_dispersed -recovered_og_dispersed)
+# plt.imshow(original_dispersed -recovered_og_dispersed, cmap="inferno", vmin=-(mean3 + 2*std3), vmax=mean3 + 2*std3, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Residuals: Original Direct - Recovered from original Dispersed")
+
+# plt.show()
