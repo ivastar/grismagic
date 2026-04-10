@@ -8,6 +8,7 @@ from scipy.ndimage import convolve
 import matplotlib.pyplot as plt
 import time 
 import asdf
+from pathlib import Path
 
 ###############################
 # Trying out sensitivity curves
@@ -271,15 +272,15 @@ def nan_local_mean(arr, size=5, mode='reflect'):
 #####################################################################
 # loading saved matrices
 ################################################################
-
+base = Path(__file__).resolve().parent / "Ex"
 # based on the original direct image
-original_direct = np.load("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\original_direct_500_500_jw01090001001_34101_00001_nis_rate.npy")
-dispersed = np.load("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\dispersed_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy")
-recovered_og_direct =  np.load("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\recovered_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy")
+original_direct = np.load(base / "original_direct_500_500_jw01090001001_34101_00001_nis_rate.npy")
+dispersed = np.load(base / "dispersed_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy")
+recovered_og_direct =  np.load(base / "recovered_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy")
 
 # based on original dispersed
-original_dispersed = np.load("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\original_dispersed_500_500_jw01090001001_39101_00002_nis_rate.npy")
-recovered_og_dispersed = np.load("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\recovered_uniform_sensitivities_102orders_500_500_jw01090001001_39101_00002_nis_rate.npy")
+original_dispersed = np.load(base / "original_dispersed_500_500_jw01090001001_39101_00002_nis_rate.npy")
+recovered_og_dispersed = np.load(base / "recovered_uniform_sensitivities_102orders_500_500_jw01090001001_39101_00002_nis_rate.npy")
 
 ####################################################################
 # plot saved matrices
