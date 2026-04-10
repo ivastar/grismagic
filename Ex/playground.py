@@ -272,7 +272,7 @@ def nan_local_mean(arr, size=5, mode='reflect'):
 #####################################################################
 # loading saved matrices
 ################################################################
-base = Path(__file__).resolve().parent / "Ex"
+base = Path(__file__).resolve().parent
 # based on the original direct image
 original_direct = np.load(base / "original_direct_500_500_jw01090001001_34101_00001_nis_rate.npy")
 dispersed = np.load(base / "dispersed_uniform_sensitivities_102orders_500_500_jw01090001001_34101_00001_nis_rate.npy")
