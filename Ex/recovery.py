@@ -106,14 +106,18 @@ class recovery:
         
         return Recovered
     
-    def recover_direct_from_traces_basis_matrix_PCA(self, dispersed, image=True):
+    def recover_direct_from_traces_basis_matrix_PCA(self, dispersed, image=True, initial_guess=None):
         """Function to recover direct image from GIVEN IMAGE dispersed. Uses the precomputed traces matrix H to recover the direct image from a dispersed image 
         via least squares."""
-   
+        H = self.H_PCA_sens[:, initial_guess == 1]
         m,n=dispersed.shape
         f=dispersed.ravel() #flattens dispersion matrix to vector for matrix multiplication
-        result = lsqr(self.H_PCA_sens,f, iter_lim=100, show=True) #solves min_d ||Ad-f||^2.
+        result = lsqr(H,f, iter_lim=500, show=True) #solves min_d ||Ad-f||^2.
         d = result[0] #  lsqr stores result as final_solution, istop, itn.... So we use only [0]
+        ############################################
+        x = np.zeros_like(initial_guess, dtype=float)
+        x[initial_guess==1]=d
+        d= x
         
         if image == False:
             return d
