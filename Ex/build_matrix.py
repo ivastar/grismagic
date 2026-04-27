@@ -4,12 +4,14 @@ from astropy.io import fits
 from scipy.interpolate import interp1d
 import pandas as pd
 from scipy.sparse import save_npz, lil_matrix, vstack
+from pathlib import Path
 
 class build_matrix: 
-    def __init__(self, config = "C:\\Users\\anika\\GitHub\\grismagic\\Ex\\Config Files\\GR150R.F150W.220725.conf", filter_name="F150W",wavelengthrange_file="C:\\Users\\anika\\GitHub\\grismagic\\Ex\\jwst_niriss_wavelengthrange_0002.asdf"):
+    def __init__(self, config, filter_name,wavelengthrange_file):
         """Important: The wavelength has to be in Angstrom since the coefficients are calibrated to angstrom.
         Initialized by Config file (XRANGE, YRANGE, DFILTER, DYDX_A_0,DYDY_A_1,DLDP_A_0,DLDP_A_1)
         """
+        
         self.tr = GrismTrace.from_file(config, filter_name, wavelengthrange_file)  # auto-detects format
 
         self.lo, self.hi = self.tr._lam_range("1", None, None) #minimum and maximum wavelength in microns for first
