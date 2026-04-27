@@ -48,7 +48,13 @@ def random_stars_PCA():
         # assign to correct block in flattened vector
         a_tilde[k * n : (k + 1) * n] = flux
     return a_tilde
-H = build_matrix("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\Config Files\\GR150R.F150W.220725.conf",filter_name="F150W",wavelengthrange_file="C:\\Users\\anika\\GitHub\\grismagic\\Ex\\jwst_niriss_wavelengthrange_0002.asdf")
+
+base = Path(__file__).parent
+
+config = base / "Config Files" / "GR150R.F150W.220725.conf"
+wave = base / "jwst_niriss_wavelengthrange_0002.asdf"
+
+H = build_matrix(config, filter_name="F150W", wavelengthrange_file=wave)
 H.build_and_save_trace_matrix_coefficients_PCA_sensitivity()
 
 ######################
