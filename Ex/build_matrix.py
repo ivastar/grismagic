@@ -511,8 +511,10 @@ class build_matrix:
         """
         ########
         # sensitivity curves
-        
-        hdu = fits.open("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\SenseConfig\\wfss-grism-configuration\\NIRISS.GR150R.F150W.1.etc.1.5.2.sens.fits") #F150W, GR150R
+        base = Path(__file__).parent
+
+        SenseConfig = base / "SenseConfig" / "wfss-grism-configuration" / "NIRISS.GR150R.F150W.1.etc.1.5.2.sens.fits"
+        hdu = fits.open(SenseConfig) #F150W, GR150R
         data1= hdu[1].data
         wavelength1 = data1["WAVELENGTH"]
         sensitivity1 = data1["SENSITIVITY"]
@@ -520,8 +522,8 @@ class build_matrix:
         sensitivity1=sensitivity1/max1 #normalized
 
         hdu.close()
-
-        hdu = fits.open("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\SenseConfig\\wfss-grism-configuration\\NIRISS.GR150R.F150W.0.etc.1.5.2.sens.fits") #F150W, GR150R
+        SenseConfig = base / "SenseConfig" / "wfss-grism-configuration" / "NIRISS.GR150R.F150W.0.etc.1.5.2.sens.fits"
+        hdu = fits.open(SenseConfig) #F150W, GR150R
         data0= hdu[1].data
         wavelength0 = data0["WAVELENGTH"]
         sensitivity0 = data0["SENSITIVITY"] 
@@ -529,8 +531,8 @@ class build_matrix:
         sensitivity0 = sensitivity0/max0 #normalized by the same factor as 1st order
 
         hdu.close()
-
-        hdu = fits.open("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\SenseConfig\\wfss-grism-configuration\\NIRISS.GR150R.F150W.2.etc.1.5.2.sens.fits") #F150W, GR150R
+        SenseConfig = base / "SenseConfig" / "wfss-grism-configuration" / "NIRISS.GR150R.F150W.2.etc.1.5.2.sens.fits"
+        hdu = fits.open(SenseConfig) #F150W, GR150R
         data2= hdu[1].data
         wavelength2 = data2["WAVELENGTH"]
         sensitivity2 = data2["SENSITIVITY"] 
