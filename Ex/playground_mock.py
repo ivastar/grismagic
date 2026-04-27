@@ -25,7 +25,7 @@ def random_stars_PCA():
     A = build_matrix()
     basis = A.eigenspectra_basis()
         
-    p=0.2
+    p=0.1
     N = x_pixel*y_pixel
     n = 10
     a_tilde = np.zeros(N*n)
@@ -48,8 +48,8 @@ def random_stars_PCA():
         # assign to correct block in flattened vector
         a_tilde[k * n : (k + 1) * n] = flux
     return a_tilde
-#H = build_matrix("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\Config Files\\GR150R.F150W.220725.conf",filter_name="F150W",wavelengthrange_file="C:\\Users\\anika\\GitHub\\grismagic\\Ex\\jwst_niriss_wavelengthrange_0002.asdf")
-#H.build_and_save_trace_matrix_coefficients_PCA_sensitivity()
+H = build_matrix("C:\\Users\\anika\\GitHub\\grismagic\\Ex\\Config Files\\GR150R.F150W.220725.conf",filter_name="F150W",wavelengthrange_file="C:\\Users\\anika\\GitHub\\grismagic\\Ex\\jwst_niriss_wavelengthrange_0002.asdf")
+H.build_and_save_trace_matrix_coefficients_PCA_sensitivity()
 
 ######################
 ##########################
@@ -96,8 +96,8 @@ build = build_matrix()
 mock_direct = build.integrated_flux_image_PCA(a_tilde) # make direct image visible
 
 # generate some noise
-noise = np.random.uniform(0, 1000, size=mock_direct.shape)
-mock_direct = mock_direct + noise
+#noise = np.random.uniform(0, 1000, size=mock_direct.shape)
+#mock_direct = mock_direct + noise
 
 np.save("mock_20_500.npy",mock_direct)
 
@@ -110,9 +110,9 @@ np.save("mock_dispersed_20_500.npy", mock_dispersed)
 #   takes direct image as image, so not the coefficients, and sets all coeff to zero except the 10 coeff
 #   that correspond to its pixe, they are set to 1.
 
-#coords =np.where(mock_direct!=0) # in mock the possible stars have currently value greater than zero
-coords =np.where(mock_direct>np.mean(mock_direct)/10000) # in mock the possible stars have currently value greater than zero
-print(np.mean(mock_direct))
+coords =np.where(mock_direct!=0) # in mock the possible stars have currently value greater than zero
+#coords =np.where(mock_direct>np.mean(mock_direct)/10000) # cutting out noise. in mock the possible stars have currently value greater than zero
+print(np.mean(mock_direct)/10000)
 possible_stars = list(zip(coords[0], coords[1])) # converte to list s.t. possible_stars[i]=(y_i,x_i)
 coefs = np.zeros(y_pixel*x_pixel*10)
 
@@ -258,57 +258,54 @@ mock_recovered = build.integrated_flux_image_PCA(d) # converts recovered to visi
 np.save("mock_recovered_20_500.npy", mock_recovered)
 
 # #################################################################
-base = Path(__file__).resolve().parent
+# base = Path(__file__).resolve().parent
 
-mock_direct = np.load(base / "mock_20_500.npy")
-mock_dispersed = np.load(base / "mock_dispersed_20_500.npy")
-mock_recovered = np.load(base / "mock_recovered_20_500.npy")
-#################################################################
-plt.subplot(1,4,1)
-std1 = np.nanstd(mock_direct)
-mean1 = np.nanmean(mock_direct)
-plt.imshow(mock_direct, cmap="inferno", vmin=-(mean1 + 2*std1), vmax=mean1 + 2*std1, interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Mock direct")
+# mock_direct = np.load(base / "mock_20_500.npy")
+# mock_dispersed = np.load(base / "mock_dispersed_20_500.npy")
+# mock_recovered = np.load(base / "mock_recovered_20_500.npy")
+# #################################################################
+# plt.subplot(1,6,1)
+# std1 = np.nanstd(mock_direct)
+# mean1 = np.nanmean(mock_direct)
+# plt.imshow(mock_direct, cmap="inferno", vmin=-(mean1 + 2*std1), vmax=mean1 + 2*std1, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Mock direct")
 
-plt.subplot(1,4,2)
-std2 = np.nanstd(mock_dispersed)
-mean2 = np.nanmean(mock_dispersed)
-plt.imshow(mock_dispersed, cmap="inferno", vmin=-(mean2 + 2*std2), vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Mock dispersed")
+# plt.subplot(1,6,2)
+# std2 = np.nanstd(mock_dispersed)
+# mean2 = np.nanmean(mock_dispersed)
+# plt.imshow(mock_dispersed, cmap="inferno", vmin=-(mean2 + 2*std2), vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Mock dispersed")
 
-plt.subplot(1,4,3)
-#std1 = np.nanstd(mock_recovered)
-#mean1 = np.nanmean(mock_recovered)
-#max = np.max(mock_recovered)
-plt.imshow(mock_recovered, vmin=-(mean1 + 2*std1), vmax=mean1 + 2*std1, cmap="inferno", interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Mock recovered")
+# plt.subplot(1,6,3)
+# H= load_npz("H_matrix_F150W_flux_20_500_orders_PCA_sensitivity.npz")
+# mock_dispersed_residual = (H@d).reshape(500,20)
+# std2 = np.nanstd(mock_dispersed_residual)
+# mean2 = np.nanmean(mock_dispersed_residual)
+# plt.imshow(mock_dispersed_residual, cmap="inferno", vmin=-(mean2 + 2*std2), vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Dispersed of LSQR A*d")
 
-plt.subplot(1,4,4)
-std1 = np.nanstd(mock_recovered-mock_direct)
-mean1 = np.nanmean(mock_recovered -mock_direct)
-plt.imshow(mock_recovered - mock_direct, vmin=-(mean1 + 2*std1), vmax=mean1 + 2*std1, cmap="inferno", interpolation="nearest", origin="lower",aspect="auto")
-plt.colorbar()
-plt.title("Rediduals: Mock recovered - Mock direct")
-plt.show()
+# plt.subplot(1,6,4)
+# plt.imshow(mock_recovered, vmin=-(mean1 + 2*std1), vmax=mean1 + 2*std1, cmap="inferno", interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Mock recovered")
 
-# snippet for spectrum of a specific trace
+# plt.subplot(1,6,5)
+# mock_direct[mock_direct==0]=1e-14
+# std1 = np.nanstd(np.abs(mock_direct-mock_recovered)/mock_direct)
+# mean1 = np.nanmean(np.abs(mock_direct-mock_recovered)/mock_direct)
+# plt.imshow(np.abs(mock_direct-mock_recovered)/mock_direct, vmin=0, vmax=mean1 + 1*std1, cmap="inferno", interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("Rediduals: |(mock_direct-mock_recovered)|/mock_direct")
 
-# one_trace = mock_dispersed[303:400, 8:12]
-# sum = one_trace.sum(axis=1)
-# x = np.arange(len(sum))
 
-# plt.subplot(1,2,1)
-# plt.plot(sum, x)
-# plt.xlabel("Index")
-# plt.ylabel("Values")
-# plt.title("Spectrum of trace")
+# plt.subplot(1,6,6)
 
-# plt.subplot(1,2,2)
-# plt.imshow(mock_dispersed[303:400, 8:12],cmap="inferno")
-
-# plt.title("One trace mock dispersion")
-
+# std2 = np.nanstd(mock_dispersed-mock_dispersed_residual)
+# mean2 = np.nanmean(mock_dispersed-mock_dispersed_residual)
+# plt.imshow(mock_dispersed-mock_dispersed_residual, cmap="inferno", vmin=-(mean2 + 2*std2), vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
+# plt.colorbar()
+# plt.title("mock_dispersed-mock_dispersed_residual")
 # plt.show()
