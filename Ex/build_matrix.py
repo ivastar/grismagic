@@ -26,8 +26,8 @@ class build_matrix:
         self.sigma = 0.7*delta*np.ones_like(self.mu)
         self.orders = self.tr.orders
         
-        self.xmin, self.xmax = 0, 500 # pixel range
-        self.ymin, self.ymax = 0, 20
+        self.xmin, self.xmax = 0, 2048 # pixel range
+        self.ymin, self.ymax = 0, 2048
         self.x_pixel = np.abs(self.xmin) + np.abs(self.xmax) #we need the size of the image in coding coordinates
         self.y_pixel = np.abs(self.ymin) + np.abs(self.ymax) 
         
@@ -619,7 +619,7 @@ class build_matrix:
         
         H = self.build_trace_matrix_coefficients_PCA_sensitivity()
         H = H.tocsr()
-        save_npz("H_matrix_F150W_flux_20_500_orders_PCA_sensitivity.npz", H)
+        save_npz("H_matrix_F150W_flux_2048_2048_orders_PCA_sensitivity.npz", H)
         return
 ##################################################
 # PCA two functions to construct image from coefficients vector
