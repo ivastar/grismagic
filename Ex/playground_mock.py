@@ -20,9 +20,15 @@ x_pixel = 20
 y_pixel= 500
 basis_length=10
 
+###########################
+base = Path(__file__).parent
+
+config = base / "Config Files" / "GR150R.F150W.220725.conf"
+wave = base / "jwst_niriss_wavelengthrange_0002.asdf"
+############################################
 def random_stars_PCA():
     
-    A = build_matrix()
+    A = build_matrix(config, filter_name="F150W", wavelengthrange_file=wave)
     basis = A.eigenspectra_basis()
         
     p=0.1
@@ -49,13 +55,10 @@ def random_stars_PCA():
         a_tilde[k * n : (k + 1) * n] = flux
     return a_tilde
 
-base = Path(__file__).parent
 
-config = base / "Config Files" / "GR150R.F150W.220725.conf"
-wave = base / "jwst_niriss_wavelengthrange_0002.asdf"
 
-H = build_matrix(config, filter_name="F150W", wavelengthrange_file=wave)
-H.build_and_save_trace_matrix_coefficients_PCA_sensitivity()
+#H = build_matrix(config, filter_name="F150W", wavelengthrange_file=wave)
+#H.build_and_save_trace_matrix_coefficients_PCA_sensitivity()
 
 ######################
 ##########################
@@ -98,7 +101,7 @@ H.build_and_save_trace_matrix_coefficients_PCA_sensitivity()
 a_tilde = random_stars_PCA()
 
 
-build = build_matrix()
+build = build_matrix(config, filter_name="F150W", wavelengthrange_file=wave)
 mock_direct = build.integrated_flux_image_PCA(a_tilde) # make direct image visible
 
 # generate some noise

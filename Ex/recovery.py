@@ -8,10 +8,17 @@ from scipy.optimize import linprog
 from scipy.linalg import pinv
 import matplotlib.pyplot as plt
 from scipy.sparse import vstack, diags, identity
+from pathlib import Path
 
 
 class recovery:
     def __init__(self):
+        base = Path(__file__).parent
+
+        self.config = base / "Config Files" / "GR150R.F150W.220725.conf"
+        self.wave = base / "jwst_niriss_wavelengthrange_0002.asdf"
+        self.filter = "F150W"
+        
         if os.path.exists("A_matrix_with_trace_count.npz"): #checks if file exists
             self.A_full = load_npz("A_matrix_with_trace_count.npz") #loads stored traces matrix
             self.trace_count = self.A_full[-1].toarray().ravel() #gives the amount of trace pixels per column of A. A1 gives 1D vector
@@ -73,7 +80,7 @@ class recovery:
         d=result.x*self.trace_count #recovers total intensity for uniform ditribution
         
 
-        A = build_matrix()
+        A = build_matrix(self.config, filter_name=self.filter, wavelengthrange_file=self.wave)
         Recovered = A.integrated_flux_image(d)
         return Recovered
     
@@ -86,7 +93,7 @@ class recovery:
         result = lsqr(self.H_full,f) #solves min_d ||Ad-f||^2.
         d = result[0] #  lsqr stores result as final_solution, istop, itn.... So we use only [0]
         
-        A = build_matrix()
+        A = build_matrix(self.config, filter_name=self.filter, wavelengthrange_file=self.wave)
         Recovered = A.integrated_flux_image(d)
      
         return Recovered
@@ -122,7 +129,7 @@ class recovery:
         if image == False:
             return d
         
-        A = build_matrix()
+        A = build_matrix(self.config, filter_name=self.filter, wavelengthrange_file=self.wave)
         
         Recovered = A.integrated_flux_image_PCA(d)
      
@@ -185,7 +192,7 @@ class recovery:
         # =====================================================
         # 6. Reconstruct image
         # =====================================================
-        A = build_matrix()
+        A = build_matrix(self.config, filter_name=self.filter, wavelengthrange_file=self.wave)
         Recovered = A.integrated_flux_image_PCA(d)
 
         return Recovered
@@ -196,7 +203,7 @@ class recovery:
         pseudo_H= pinv(self.H_PCA_sens.toarray()) # moore penrose pseudoinverse
         f=dispersed.ravel() #flattens dispersion matrix to vector for matrix multiplication
         d = pseudo_H@f
-        A = build_matrix()
+        A = build_matrix(self.config, filter_name=self.filter, wavelengthrange_file=self.wave)
         Recovered = A.integrated_flux_image_PCA(d)
         return Recovered
     
@@ -212,7 +219,7 @@ class recovery:
             d = result[0] #  lsqr stores result as final_solution, istop, itn.... So we use only [0]
             d_all[i*100:(i+1)*100] = d
             print(count-i)
-        A = build_matrix()
+        A = build_matrix(self.config, filter_name=self.filter, wavelengthrange_file=self.wave)
         Recovered = A.integrated_flux_image_PCA(d_all)
      
         return Recovered
