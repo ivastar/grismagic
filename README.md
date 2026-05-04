@@ -6,6 +6,10 @@ Provides a unified Python interface for reading grism configuration files across
 
 ## Modules
 
+### `Ex`
+In the directory "Ex", my new simultaneous dispersion and recovery of actual images is available.
+
+
 ### `grismagic.readers`
 
 Low-level readers for four grism configuration formats:

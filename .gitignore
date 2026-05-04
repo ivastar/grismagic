@@ -130,3 +130,26 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+*.lock
+
+#vscode
+.vscode/*
+
+#git
+.gitattributes/*
+
+# matrices
+*.npz
+
+# images
+*.npy
+*.png
+
+Ex/RateFiles/1090
+Ex/RateFiles/MAST_2026-04-01T1016
+
+#sensitivity files
+#Ex/SenseConfig
