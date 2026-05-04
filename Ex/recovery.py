@@ -31,7 +31,7 @@ class recovery:
         H = self.H_PCA_sens[:, initial_guess == 1] # trims the matrix to just its possible source columns
       
         f=dispersed.ravel() #flattens dispersion matrix to vector for matrix multiplication
-        result = lsqr(H,f, iter_lim=500, show=True) #solves min_d ||Ad-f||^2.
+        result = lsqr(H,f, iter_lim=500, show=False) #solves min_d ||Ad-f||^2.
         d = result[0] #  lsqr stores result as final_solution, istop, itn.... So we use only [0]
         
         # recovers full d with zeros at the correct positions

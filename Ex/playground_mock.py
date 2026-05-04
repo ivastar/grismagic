@@ -84,7 +84,7 @@ print( f"Dirrect image construction (includs saving):{disptime:.3f} s")
 start = time.time()
 disp = dispersion()
 mock_dispersed = disp.dispersed_PCA(a_tilde) # compute dispersed image
-np.save("mock_dispersed_{x_pixel}_{y_pixel}.npy", mock_dispersed)
+np.save(f"mock_dispersed_{x_pixel}_{y_pixel}.npy", mock_dispersed)
 end = time.time()
 disptime = end - start
 print( f"Dispersion (includs saving):{disptime:.3f} s")
@@ -170,7 +170,7 @@ plt.show()
 
 
 mock_recovered = build.integrated_flux_image_PCA(d) # converts recovered to visible image
-np.save("mock_recovered_{x_pixel}_{y_pixel}.npy", mock_recovered)
+np.save(f"mock_recovered_{x_pixel}_{y_pixel}.npy", mock_recovered)
 
 ########################## visualize images #######################################
 # loads files
