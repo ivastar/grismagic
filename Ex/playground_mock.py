@@ -135,24 +135,59 @@ d= recov.recover_direct_from_traces_basis_matrix_PCA(mock_dispersed, image=False
 
 
 Phi = build.eigenspectra_basis()
-k = np.nonzero(a_tilde)[0][0]
+all_true_vals = []
+all_rec_vals  = []
 
-n = 10
 
-spectrum = Phi @ d[k:k+n]#recovered spectrum
-spectrum_og = Phi @ a_tilde[k:k+n] # original spectrum
+for i in range(int(len(a_tilde)/10)):
+    if np.any(a_tilde[i*10:(i+1)*10]!= 0):
+        
+        spectrum = Phi @ d[i*10:(i+1)*10]#recovered spectrum
+        spectrum_og = Phi @ a_tilde[i*10:(i+1)*10] # original spectrum
 ###################### plot both spectra against each other
-plt.subplot(1,2,1)
-plt.plot(build.lambdas, spectrum_og)
-plt.xlabel("Wavelength")
-plt.ylabel("Flux")
-plt.title(f"Original spectrum k=y*20+x= {k}")
-plt.subplot(1,2,2)
-plt.plot(build.lambdas, spectrum)
-plt.xlabel("Wavelength")
-plt.ylabel("Flux")
-plt.title(f"Recovered spectrum k=y*20+x= {k}")
+        # plt.subplot(1,2,1)
+        # plt.plot(build.lambdas, spectrum_og)
+        # plt.xlabel("Wavelength in Ångström")
+        # plt.ylabel("Flux")
+        # plt.title(f"Original spectrum at k=y*20+x= {i}")
+        # plt.subplot(1,2,2)
+        # plt.plot(build.lambdas, spectrum)
+        # plt.xlabel("Wavelength in Ångström")
+        # plt.ylabel("Flux")
+        # plt.title(f"Recovered spectrum at k=y*20+x= {i}")
+        # plt.show()
+
+        # accumulate instead of plotting
+        all_true_vals.append(spectrum_og)
+        all_rec_vals.append(spectrum)
+
+# stack everything into one big vector
+true_vals = np.concatenate(all_true_vals)
+rec_vals  = np.concatenate(all_rec_vals)
+
+# ---- single global parity plot ----
+
+
+plt.figure(facecolor='white')
+ax = plt.gca()
+ax.set_facecolor('white')
+#plt.hexbin(true_vals, rec_vals, gridsize=300, mincnt=1, cmap='viridis')
+plt.scatter(true_vals, rec_vals, s=2, alpha =0.01)
+
+
+plt.gca().set_aspect('equal', adjustable='box')
+
+minv= min(true_vals.min(), rec_vals.min())
+maxv = max(true_vals.max(), rec_vals.max())
+plt.plot([minv, maxv], [minv, maxv], 'r--')
+plt.xlim(minv, maxv)
+plt.ylim(minv, maxv)
+plt.xlabel("original f(λ)")
+plt.ylabel("reconstructed f(λ)")
+plt.title("Parity plot (all points)")
+
 plt.show()
+        
 ########################## extracts spectrum of pixel
 # Phi = build.eigenspectra_basis()
 
@@ -266,26 +301,26 @@ plt.show()
 mock_recovered = build.integrated_flux_image_PCA(d) # converts recovered to visible image
 np.save("mock_recovered_20_500.npy", mock_recovered)
 
-# #################################################################
-# base = Path(__file__).resolve().parent
+#################################################################
+base = Path(__file__).resolve().parent
 
-# mock_direct = np.load(base / "mock_20_500.npy")
-# mock_dispersed = np.load(base / "mock_dispersed_20_500.npy")
-# mock_recovered = np.load(base / "mock_recovered_20_500.npy")
-# #################################################################
-# plt.subplot(1,6,1)
-# std1 = np.nanstd(mock_direct)
-# mean1 = np.nanmean(mock_direct)
-# plt.imshow(mock_direct, cmap="inferno", vmin=-(mean1 + 2*std1), vmax=mean1 + 2*std1, interpolation="nearest", origin="lower",aspect="auto")
-# plt.colorbar()
-# plt.title("Mock direct")
+mock_direct = np.load(base / "mock_20_500.npy")
+mock_dispersed = np.load(base / "mock_dispersed_20_500.npy")
+mock_recovered = np.load(base / "mock_recovered_20_500.npy")
+#################################################################
+plt.subplot(1,4,1)
+std1 = np.nanstd(mock_direct)
+mean1 = np.nanmean(mock_direct)
+plt.imshow(mock_direct, cmap="inferno", vmin=-(mean1 + 2*std1), vmax=mean1 + 2*std1, interpolation="nearest", origin="lower",aspect="auto")
+plt.colorbar()
+plt.title("Direct")
 
-# plt.subplot(1,6,2)
-# std2 = np.nanstd(mock_dispersed)
-# mean2 = np.nanmean(mock_dispersed)
-# plt.imshow(mock_dispersed, cmap="inferno", vmin=-(mean2 + 2*std2), vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
-# plt.colorbar()
-# plt.title("Mock dispersed")
+plt.subplot(1,4,2)
+std2 = np.nanstd(mock_dispersed)
+mean2 = np.nanmean(mock_dispersed)
+plt.imshow(mock_dispersed, cmap="inferno", vmin=-(mean2 + 2*std2), vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
+plt.colorbar()
+plt.title("Dispersed")
 
 # plt.subplot(1,6,3)
 # H= load_npz("H_matrix_F150W_flux_20_500_orders_PCA_sensitivity.npz")
@@ -294,21 +329,21 @@ np.save("mock_recovered_20_500.npy", mock_recovered)
 # mean2 = np.nanmean(mock_dispersed_residual)
 # plt.imshow(mock_dispersed_residual, cmap="inferno", vmin=-(mean2 + 2*std2), vmax=mean2 + 2*std2, interpolation="nearest", origin="lower",aspect="auto")
 # plt.colorbar()
-# plt.title("Dispersed of LSQR A*d")
+# plt.title("Dispersed of LSQR H*d")
 
-# plt.subplot(1,6,4)
-# plt.imshow(mock_recovered, vmin=-(mean1 + 2*std1), vmax=mean1 + 2*std1, cmap="inferno", interpolation="nearest", origin="lower",aspect="auto")
-# plt.colorbar()
-# plt.title("Mock recovered")
+plt.subplot(1,4,3)
+plt.imshow(mock_recovered, vmin=-(mean1 + 2*std1), vmax=mean1 + 2*std1, cmap="inferno", interpolation="nearest", origin="lower",aspect="auto")
+plt.colorbar()
+plt.title("Recovered")
 
-# plt.subplot(1,6,5)
-# mock_direct[mock_direct==0]=1e-14
-# std1 = np.nanstd(np.abs(mock_direct-mock_recovered)/mock_direct)
-# mean1 = np.nanmean(np.abs(mock_direct-mock_recovered)/mock_direct)
-# plt.imshow(np.abs(mock_direct-mock_recovered)/mock_direct, vmin=0, vmax=mean1 + 1*std1, cmap="inferno", interpolation="nearest", origin="lower",aspect="auto")
-# plt.colorbar()
-# plt.title("Rediduals: |(mock_direct-mock_recovered)|/mock_direct")
-
+plt.subplot(1,4,4)
+#mock_direct[mock_direct==0]=1e-14
+std1 = np.nanstd(np.abs(mock_direct-mock_recovered))
+mean1 = np.nanmean(np.abs(mock_direct-mock_recovered))
+plt.imshow(np.abs(mock_direct-mock_recovered), vmin=0, vmax=mean1 + 1*std1, cmap="inferno", interpolation="nearest", origin="lower",aspect="auto")
+plt.colorbar()
+plt.title("Rediduals: |Direct - Recovered|")
+plt.show()
 
 # plt.subplot(1,6,6)
 
