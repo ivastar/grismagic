@@ -3,104 +3,70 @@ from build_matrix import build_matrix
 from dispersion import dispersion
 from recovery import recovery
 import numpy as np
-from astropy.io import fits
-from scipy.ndimage import convolve
+
 import matplotlib.pyplot as plt
 import time 
-import asdf
-from pathlib import Path
-from astropy.stats import sigma_clip
-import pandas as pd
-from scipy.linalg import pinv
-from scipy.sparse import load_npz, save_npz
-from scipy.ndimage import binary_dilation, label
-from scipy.ndimage import generate_binary_structure
 
+from pathlib import Path
+import pandas as pd
+
+# Globally define x range, y range and basis length that are used to construct matrix
 x_pixel = 20
 y_pixel= 500
 basis_length=10
 
-###########################
+# load paths of config files for matrix construction
 base = Path(__file__).parent
 
 config = base / "Config Files" / "GR150R.F150W.220725.conf"
 wave = base / "jwst_niriss_wavelengthrange_0002.asdf"
-############################################
+
+# Constructs matrix. Do this ONCE
+#H = build_matrix(config, filter_name="F150W", wavelengthrange_file=wave, rows=y_pixel, columns=x_pixel)
+#H.build_and_save_trace_matrix_coefficients_PCA_sensitivity()
+
+######################## direct image ############################
+# build mock stars
 def random_stars_PCA():
+    """Constructs vector a_tilde where every basis_length=10 entries belong to one pixel. Most of them are zero and for p pixels assign random
+    values a_i(x,y), such that a_i(x,y)*phi_i(lambda) is positive for all lambdas, to ensure positive flux, i.e. physical meaning"""
     
-    A = build_matrix(config, filter_name="F150W", wavelengthrange_file=wave)
-    basis = A.eigenspectra_basis()
+    A = build_matrix(config, filter_name="F150W", wavelengthrange_file=wave, rows=y_pixel, columns=x_pixel) # calls build_matrix since basis method is there
+    basis = A.eigenspectra_basis() # constructs basis
         
-    p=0.1
-    N = x_pixel*y_pixel
-    n = 10
-    a_tilde = np.zeros(N*n)
+    p=0.1 # p pixels of the image have sources
     
-    num_active = int(p*N)
-    active_k= np.random.choice(N, size= num_active, replace= False)
+    N = x_pixel*y_pixel # image size 
+
+    a_tilde = np.zeros(N*basis_length) # constructs a_tilde with correct size. a_tilde will be 0 everywhere without source
     
-    max_tries = 50
-    for k in active_k:
+    num_active = int(p*N) # p*100 percent will have sources assigned
+    active_k= np.random.choice(N, size= num_active, replace= False) # randomly chooses sources
+    
+    max_tries = 50 # maximum tries to find a positive flux coefficient set
+    
+    for k in active_k: # for all prior chosen source pixels
 
         for _ in range(max_tries):
-            flux = np.random.uniform(-1, 1, size=n)
-            spectrum = basis @ flux  # shape (150,)
+            flux = np.random.uniform(-1, 1, size=basis_length) # randomly chooses coefficients 
+            spectrum = basis @ flux  # computes f(x,y,lambda)= sum_i a_i(x,y)phi_i(lambda)
             
-            if np.all(spectrum >= 0):
+            if np.all(spectrum >= 0): # only allows positive flux
                 break
         else:
             # fallback if no valid sample found
-            flux = np.zeros(n)
+            flux = np.zeros(basis_length) # so possibly less than p sources in the end
+            
         # assign to correct block in flattened vector
-        a_tilde[k * n : (k + 1) * n] = flux
+        a_tilde[k * basis_length : (k + 1) * basis_length] = flux
     return a_tilde
 
 
-
-#H = build_matrix(config, filter_name="F150W", wavelengthrange_file=wave)
-#H.build_and_save_trace_matrix_coefficients_PCA_sensitivity()
-
-######################
-##########################
-##########################
-# mock image. star consisting of 5 pixels centered at x,y= 50,490
-
-# a_star = np.array([1.2,-0.4,0.08,0.02,-0.01,0.005,0.1,0,0,0]) #manual spectral coefficients
-# a_star1 = np.array([1.0,-0.4,0.08,0.02,0.05,-0.008,0,0.2,0,0]) #manual spectral coefficients
-# a_star2 = np.array([1.2,0.4,0.02,-0.02,0.01,0.01,0.4,0,0,0]) #manual spectral coefficients
-# a_star3 = np.array([2,-0.4,0.08,0.02,-0.01,0.005,0,0,0,2]) #manual spectral coefficients
-# a_star4 = np.array([-0.1,-0.6,0.08,0.02,-0.01,0.005,0,0,1,0]) #manual spectral coefficients
-
-# x=10
-# y=250
-# a_tilde = np.zeros(500*20*10)
-# pixel_star = y*20+x
-# a_tilde[pixel_star*10 : (pixel_star+1)*10] += a_star    # all 5 pixels belong to the same star so same spectral coefficients
-
-# x=17
-# y=200
-# pixel_star = y*20+x
-# a_tilde[pixel_star*10 : (pixel_star+1)*10] += a_star1
-
-# x=6
-# y=50
-# pixel_star = y*20+x
-# a_tilde[pixel_star*10 : (pixel_star+1)*10] += a_star2
-
-# x=10
-# y=170
-# pixel_star = y*20+x
-# a_tilde[pixel_star*10 : (pixel_star+1)*10] += a_star3
-
-# x=19
-# y=300
-# pixel_star = y*20+x
-# a_tilde[pixel_star*10 : (pixel_star+1)*10] += a_star4
-#####################################
-####################################
+# constructs coefficient vector a_tilde
+start = time.time()
 a_tilde = random_stars_PCA()
 
-
+# a_tilde is just a coefficient vector, build.integrated_flux_image_PCA(a_tilde) makes it visible as image
 build = build_matrix(config, filter_name="F150W", wavelengthrange_file=wave)
 mock_direct = build.integrated_flux_image_PCA(a_tilde) # make direct image visible
 
@@ -108,32 +74,44 @@ mock_direct = build.integrated_flux_image_PCA(a_tilde) # make direct image visib
 #noise = np.random.uniform(0, 1000, size=mock_direct.shape)
 #mock_direct = mock_direct + noise
 
-np.save("mock_20_500.npy",mock_direct)
+np.save(f"mock_{x_pixel}_{y_pixel}.npy",mock_direct) # saves direct image
+end = time.time()
+disptime = end - start
+print( f"Dirrect image construction (includs saving):{disptime:.3f} s")
 
+############################# dispersion ##################################################
+
+start = time.time()
 disp = dispersion()
 mock_dispersed = disp.dispersed_PCA(a_tilde) # compute dispersed image
-np.save("mock_dispersed_20_500.npy", mock_dispersed)
+np.save("mock_dispersed_{x_pixel}_{y_pixel}.npy", mock_dispersed)
+end = time.time()
+disptime = end - start
+print( f"Dispersion (includs saving):{disptime:.3f} s")
 
-######################################
 # initial guess
 #   takes direct image as image, so not the coefficients, and sets all coeff to zero except the 10 coeff
-#   that correspond to its pixe, they are set to 1.
+#   that correspond to its pixel, they are set to 1. In recovery function, this is trimming the matrix H to just the active sources
 
 coords =np.where(mock_direct!=0) # in mock the possible stars have currently value greater than zero
 #coords =np.where(mock_direct>np.mean(mock_direct)/10000) # cutting out noise. in mock the possible stars have currently value greater than zero
-print(np.mean(mock_direct)/10000)
+# print(np.mean(mock_direct)/10000)
 possible_stars = list(zip(coords[0], coords[1])) # converte to list s.t. possible_stars[i]=(y_i,x_i)
 coefs = np.zeros(y_pixel*x_pixel*10)
 
-for i in range(len(possible_stars)):
+for i in range(len(possible_stars)): # initial guess = 1 for all
     y,x=possible_stars[i]
     pixel = y*x_pixel+x
     coefs[pixel*basis_length : (pixel+1)*basis_length] = 1
-######################################
+    
+###################### recovery ##########################################
+start = time.time()
 recov = recovery()
 d= recov.recover_direct_from_traces_basis_matrix_PCA(mock_dispersed, image=False, initial_guess=coefs) # recovers image. image=False to output the vector d and not the ready image
-
-
+end = time.time()
+disptime = end - start
+print( f"Recovery :{disptime:.3f} s")
+###################### visualization of spectra #######################
 Phi = build.eigenspectra_basis()
 all_true_vals = []
 all_rec_vals  = []
@@ -144,7 +122,8 @@ for i in range(int(len(a_tilde)/10)):
         
         spectrum = Phi @ d[i*10:(i+1)*10]#recovered spectrum
         spectrum_og = Phi @ a_tilde[i*10:(i+1)*10] # original spectrum
-###################### plot both spectra against each other
+        
+###################### plot both spectra against each other ##################
         # plt.subplot(1,2,1)
         # plt.plot(build.lambdas, spectrum_og)
         # plt.xlabel("Wavelength in Ångström")
@@ -161,11 +140,10 @@ for i in range(int(len(a_tilde)/10)):
         all_true_vals.append(spectrum_og)
         all_rec_vals.append(spectrum)
 
+######################### single global parity plot #############################
 # stack everything into one big vector
 true_vals = np.concatenate(all_true_vals)
 rec_vals  = np.concatenate(all_rec_vals)
-
-# ---- single global parity plot ----
 
 
 plt.figure(facecolor='white')
@@ -188,126 +166,22 @@ plt.title("Parity plot (all points)")
 
 plt.show()
         
-########################## extracts spectrum of pixel
-# Phi = build.eigenspectra_basis()
-
-# x = 10
-# y= 250
-# k = y*20+x 
-# n = 10
-# a_k = d[k*n:(k+1)*n]
-# spectrum = Phi @ a_k #recovered spectrum
-# spectrum_og = Phi @ a_star # original spectrum
-# ###################### plot both spectra against each other
-# plt.subplot(1,2,1)
-# plt.plot(build.lambdas, spectrum_og)
-# plt.xlabel("Wavelength")
-# plt.ylabel("Flux")
-# plt.title(f"Original spectrum (x,y)= ({x},{y})")
-
-# plt.subplot(1,2,2)
-# plt.plot(build.lambdas, spectrum)
-# plt.xlabel("Wavelength")
-# plt.ylabel("Flux")
-# plt.title(f"Recovered spectrum (x,y)= ({x},{y})")
-# plt.show()
-# #######################
-# x=17
-# y=200
-# k = y*20+x 
-# n = 10
-# a_k = d[k*n:(k+1)*n]
-# spectrum = Phi @ a_k #recovered spectrum
-# spectrum_og = Phi @ a_star1 # original spectrum
-# ###################### plot both spectra against each other
-# plt.subplot(1,2,1)
-# plt.plot(build.lambdas, spectrum_og)
-# plt.xlabel("Wavelength")
-# plt.ylabel("Flux")
-# plt.title(f"Original spectrum (x,y)= ({x},{y})")
-
-# plt.subplot(1,2,2)
-# plt.plot(build.lambdas, spectrum)
-# plt.xlabel("Wavelength")
-# plt.ylabel("Flux")
-# plt.title(f"Recovered spectrum (x,y)= ({x},{y})")
-# plt.show()
-# ############################################
-# x=6
-# y=50
-# k = y*20+x 
-# n = 10
-# a_k = d[k*n:(k+1)*n]
-# spectrum = Phi @ a_k #recovered spectrum
-# spectrum_og = Phi @ a_star2 # original spectrum
-# ###################### plot both spectra against each other
-# plt.subplot(1,2,1)
-# plt.plot(build.lambdas, spectrum_og)
-# plt.xlabel("Wavelength")
-# plt.ylabel("Flux")
-# plt.title(f"Original spectrum (x,y)= ({x},{y})")
-
-# plt.subplot(1,2,2)
-# plt.plot(build.lambdas, spectrum)
-# plt.xlabel("Wavelength")
-# plt.ylabel("Flux")
-# plt.title(f"Recovered spectrum (x,y)= ({x},{y})")
-# plt.show()
-# ################################################
-# x=10
-# y=170
-# k = y*20+x 
-# n = 10
-# a_k = d[k*n:(k+1)*n]
-# spectrum = Phi @ a_k #recovered spectrum
-# spectrum_og = Phi @ a_star3 # original spectrum
-# ###################### plot both spectra against each other
-# plt.subplot(1,2,1)
-# plt.plot(build.lambdas, spectrum_og)
-# plt.xlabel("Wavelength")
-# plt.ylabel("Flux")
-# plt.title(f"Original spectrum (x,y)= ({x},{y})")
-
-# plt.subplot(1,2,2)
-# plt.plot(build.lambdas, spectrum)
-# plt.xlabel("Wavelength")
-# plt.ylabel("Flux")
-# plt.title(f"Recovered spectrum (x,y)= ({x},{y})")
-# plt.show()
-# #############################
-# x=19
-# y=300
-# k = y*20+x 
-# n = 10
-# a_k = d[k*n:(k+1)*n]
-# spectrum = Phi @ a_k #recovered spectrum
-# spectrum_og = Phi @ a_star4 # original spectrum
-# ###################### plot both spectra against each other
-# plt.subplot(1,2,1)
-# plt.plot(build.lambdas, spectrum_og)
-# plt.xlabel("Wavelength")
-# plt.ylabel("Flux")
-# plt.title(f"Original spectrum (x,y)= ({x},{y})")
-
-# plt.subplot(1,2,2)
-# plt.plot(build.lambdas, spectrum)
-# plt.xlabel("Wavelength")
-# plt.ylabel("Flux")
-# plt.title(f"Recovered spectrum (x,y)= ({x},{y})")
-# plt.show()
-#############################################################
+################################# saves recovery #######################################
 
 
 mock_recovered = build.integrated_flux_image_PCA(d) # converts recovered to visible image
-np.save("mock_recovered_20_500.npy", mock_recovered)
+np.save("mock_recovered_{x_pixel}_{y_pixel}.npy", mock_recovered)
 
-#################################################################
+########################## visualize images #######################################
+# loads files
 base = Path(__file__).resolve().parent
 
 mock_direct = np.load(base / "mock_20_500.npy")
 mock_dispersed = np.load(base / "mock_dispersed_20_500.npy")
 mock_recovered = np.load(base / "mock_recovered_20_500.npy")
+
 #################################################################
+# plots files as images
 plt.subplot(1,4,1)
 std1 = np.nanstd(mock_direct)
 mean1 = np.nanmean(mock_direct)
